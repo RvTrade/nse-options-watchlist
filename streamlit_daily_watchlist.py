@@ -8,12 +8,13 @@ st.set_page_config(page_title="NSE Options Watchlist", layout="wide")
 st.title("📈 NSE Options Watchlist (Demo Version)")
 
 # -------------------------------
-# Stock list (you can expand this)
+# Stock list (expandable)
 # -------------------------------
 stocks = ["RELIANCE.NS", "TCS.NS", "INFY.NS", "HDFCBANK.NS", "ICICIBANK.NS"]
 
 @st.cache_data
 def get_stock_data(ticker):
+    """Fetch stock data safely from Yahoo Finance"""
     try:
         df = yf.download(ticker, period="6mo", interval="1d")
         if df.empty:
@@ -40,7 +41,13 @@ if not data_frames:
 df = pd.concat(data_frames)
 
 # -------------------------------
-# Add custom indicators
+# Fix MultiIndex issue
+# -------------------------------
+if isinstance(df.columns, pd.MultiIndex):
+    df.columns = [' '.join(col).strip() for col in df.columns.values]
+
+# -------------------------------
+# Add indicators
 # -------------------------------
 try:
     df["Daily Return"] = df["Adj Close"].pct_change()
@@ -50,12 +57,14 @@ except Exception as e:
     st.error(f"⚠️ Error creating indicators: {e}")
 
 # -------------------------------
-# Display data safely
+# Show raw data
 # -------------------------------
 st.subheader("📊 Raw Stock Data (last 10 rows)")
 st.dataframe(df.tail(10))
 
-# Top opportunities
+# -------------------------------
+# Show top opportunities
+# -------------------------------
 if "Opportunity Score" in df.columns and not df["Opportunity Score"].isnull().all():
     top_stocks = df.sort_values(by="Opportunity Score", ascending=False).head(5)
     st.subheader("🚀 Top 5 Option Opportunities")
@@ -64,12 +73,15 @@ else:
     st.warning("⚠️ No valid Opportunity Score found. Data may be missing or incomplete.")
 
 # -------------------------------
-# Interactive section
+# Interactive stock chart
 # -------------------------------
 selected_ticker = st.selectbox("🔎 Select a stock to view details", stocks)
 
 stock_df = df[df["Ticker"] == selected_ticker]
 if not stock_df.empty:
-    st.line_chart(stock_df["Adj Close"], use_container_width=True)
+    if "Adj Close" in stock_df.columns:
+        st.line_chart(stock_df["Adj Close"], use_container_width=True)
+    else:
+        st.warning(f"⚠️ 'Adj Close' data missing for {selected_ticker}")
 else:
     st.warning(f"⚠️ No data available for {selected_ticker}")
