@@ -1,5 +1,7 @@
 streamlit==1.37.1
+git+https://github.com/ranaroussi/yfinance
 yfinance==0.2.43
 pandas==2.2.2
 numpy==1.26.4
 requests==2.32.3
+python==3.11.9
